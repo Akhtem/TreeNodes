@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TreeNodes.Data;
 using TreeNodes.Exceptions;
 using TreeNodes.Models;
@@ -17,63 +18,63 @@ namespace TreeNodes.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetNodes(int? treeId)
+        public async Task<IActionResult> GetNodes(int? treeId)
         {
             List<Node> nodes;
 
             if (treeId.HasValue)
             {
-                nodes = _dbContext.Nodes.Where(n => n.TreeId == treeId.Value).ToList();
+                nodes = await _dbContext.Nodes.Where(n => n.TreeId == treeId.Value).ToListAsync();
             }
             else
             {
-                nodes = _dbContext.Nodes.ToList();
+                nodes = await _dbContext.Nodes.ToListAsync();
             }
 
             return Ok(nodes);
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateNode(int id, NodeRequest updatedNode)
+        public async Task<IActionResult> UpdateNode(int id, NodeRequest updatedNode)
         {
-            var node = _dbContext.Nodes.Find(id);
+            var node = await _dbContext.Nodes.FindAsync(id);
             if (node == null)
             {
-                throw new SecureException("Node is not found", Guid.NewGuid().ToString());
+                throw new SecureException(Guid.NewGuid().ToString(), "Node is not found");
             }
 
             node.Name = updatedNode.Name;
             node.TreeId = updatedNode.TreeId;
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             return NoContent();
         }
 
         [HttpPost]
-        public IActionResult CreateNode([FromBody] NodeRequest node)
+        public async Task<IActionResult> CreateNode([FromBody] NodeRequest node)
         {
             if (string.IsNullOrEmpty(node.Name))
             {
-                throw new SecureException("Node Name can not be null", Guid.NewGuid().ToString());
+                throw new SecureException(Guid.NewGuid().ToString(), "Node Name can not be null");
             }
 
-            _dbContext.Nodes.Add(new Node { Name = node.Name, TreeId = node.TreeId});
-            _dbContext.SaveChanges();
+            _dbContext.Nodes.Add(new Node { Name = node.Name, TreeId = node.TreeId });
+            await _dbContext.SaveChangesAsync();
 
             return Ok(node);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteNode(int id)
+        public async Task<IActionResult> DeleteNode(int id)
         {
-            var node = _dbContext.Nodes.Find(id);
+            var node = await _dbContext.Nodes.FindAsync(id);
             if (node == null)
             {
-                throw new SecureException("Node is not found", Guid.NewGuid().ToString());
+                throw new SecureException(Guid.NewGuid().ToString(), "Node is not found");
             }
 
             _dbContext.Nodes.Remove(node);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             return NoContent();
         }

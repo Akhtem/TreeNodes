@@ -18,67 +18,91 @@ namespace TreeNodes.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetTrees()
+        public async Task<IActionResult> GetTrees()
         {
-            List<Tree> trees = _dbContext.Trees.Include(t => t.Nodes).ToList();
-            return Ok(trees);
+            List<Tree> trees = await _dbContext.Trees.Include(t => t.Nodes).ToListAsync();
+
+            var result = trees.Select(tree => new
+            {
+                Id = tree.Id,
+                Name = tree.Name,
+                Nodes = tree.Nodes?.Select(n => new
+                {
+                    Id = n.Id,
+                    Name = n.Name
+                })
+            });
+
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetTree(int id)
+        public async Task<IActionResult> GetTree(int id)
         {
-            var tree = _dbContext.Trees.Include(t => t.Nodes).FirstOrDefault(q => q.Id == id);
+            var tree = await _dbContext.Trees.Include(t => t.Nodes).FirstOrDefaultAsync(q => q.Id == id);
             if (tree == null)
             {
                 return NotFound();
             }
-            return Ok(tree);
+
+            var result = new
+            {
+                Id = tree.Id,
+                Name = tree.Name,
+                Nodes = tree.Nodes?.Select(n => new
+                {
+                    Id = n.Id,
+                    Name = n.Name
+                })
+            };
+
+            return Ok(result);
         }
 
         [HttpPost]
-        public IActionResult CreateTree(TreeRequest tree)
+        public async Task<IActionResult> CreateTree(TreeRequest tree)
         {
             if (string.IsNullOrEmpty(tree.Name))
             {
-                throw new SecureException("Tree Name cannot be null or empty", Guid.NewGuid().ToString());
+                throw new SecureException(Guid.NewGuid().ToString(), "Tree Name cannot be null or empty");
             }
 
             var _tree = new Tree { Name = tree.Name };
             _dbContext.Trees.Add(_tree);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
             return CreatedAtAction(nameof(GetTree), new { id = _tree.Id }, _tree);
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateTree(int id, TreeRequest updatedTree)
+        public async Task<IActionResult> UpdateTree(int id, TreeRequest updatedTree)
         {
-            var tree = _dbContext.Trees.Find(id);
+            var tree = await _dbContext.Trees.FindAsync(id);
             if (tree == null)
             {
-                throw new SecureException("Tree is not found", Guid.NewGuid().ToString());
+                throw new SecureException(Guid.NewGuid().ToString(), "Tree is not found");
             }
 
             tree.Name = updatedTree.Name;
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteTree(int id)
+        public async Task<IActionResult> DeleteTree(int id)
         {
-            var tree = _dbContext.Trees.Find(id);
+            var tree = await _dbContext.Trees.FindAsync(id);
             if (tree == null)
             {
-                throw new SecureException("Tree is not found", Guid.NewGuid().ToString());
+                throw new SecureException(Guid.NewGuid().ToString(), "Tree is not found");
             }
 
-            if (_dbContext.Nodes.Any(n => n.TreeId == id))
+            if (await _dbContext.Nodes.AnyAsync(n => n.TreeId == id))
             {
-                throw new SecureException("You have to delete all children nodes first", Guid.NewGuid().ToString());
+                throw new SecureException(Guid.NewGuid().ToString(), "You have to delete all children nodes first");
             }
 
             _dbContext.Trees.Remove(tree);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             return NoContent();
         }

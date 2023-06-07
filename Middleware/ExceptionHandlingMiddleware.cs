@@ -110,7 +110,6 @@ namespace TreeNodes.Middleware
 
         private async Task<string> GetBodyParameters(HttpContext context)
         {
-            context.Request.EnableBuffering();
             using var streamReader = new StreamReader(context.Request.Body, leaveOpen: true);
             var requestBody = await streamReader.ReadToEndAsync();
             context.Request.Body.Position = 0;
