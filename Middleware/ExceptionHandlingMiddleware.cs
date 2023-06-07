@@ -84,6 +84,8 @@ namespace TreeNodes.Middleware
 
         private async Task LogExceptionAsync(AppDbContext dbContext, Exception exception, HttpContext context, string eventType)
         {
+            context.Request.Body.Position = 0;
+
             var exceptionLog = new ExceptionLog
             {
                 EventType = eventType,
